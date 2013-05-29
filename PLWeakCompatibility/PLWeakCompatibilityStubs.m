@@ -22,6 +22,11 @@
 #undef objc_loadWeak
 #undef objc_storeWeak
 
+// Fix when used in a project that has a NSLog overriding macro
+#ifdef NSLog
+#undef NSLog
+#endif
+
 // MAZeroingWeakRef Support
 static Class MAZWR = Nil;
 static bool mazwrEnabled = true;
