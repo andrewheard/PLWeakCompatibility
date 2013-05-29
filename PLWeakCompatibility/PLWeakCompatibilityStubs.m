@@ -27,6 +27,11 @@
 #undef NSLog
 #endif
 
+#ifdef __COCOTRON_RUNTIME__
+#define __bridge_retained
+#define dlsym(a,b) NULL
+#endif
+
 // MAZeroingWeakRef Support
 static Class MAZWR = Nil;
 static bool mazwrEnabled = true;
@@ -62,7 +67,11 @@ BOOL PLWeakCompatibilityHasMAZWR(void) {
 PLObjectPtr objc_release(PLObjectPtr obj);
 PLObjectPtr objc_autorelease(PLObjectPtr obj);
 PLObjectPtr objc_retain(PLObjectPtr obj);
+#ifdef COCOTRON
+OBJC_EXPORT Class object_getClass(id obj);
+#else
 Class object_getClass(PLObjectPtr obj);
+#endif
 
 // Primitive functions used to implement all weak stubs
 static PLObjectPtr PLLoadWeakRetained(PLObjectPtr *location);
