@@ -92,6 +92,8 @@ void PLWeakCompatibilitySetFallthroughEnabled(BOOL enabled) {
 ////////////////////
 #pragma mark Stubs
 ////////////////////
+id objc_storeWeak(id *location, id obj);
+id objc_loadWeak(id *location);
 
 id objc_loadWeakRetained(id *location) {
     NEXT(objc_loadWeakRetained, location);
@@ -121,7 +123,7 @@ void objc_moveWeak(id *to, id *from) {
     objc_destroyWeak(from);
 }
 
-//PLObjectPtr objc_loadWeak(PLObjectPtr *location) {
+
 id objc_loadWeak(id *location) {
    NEXT(objc_loadWeak, location);
     
