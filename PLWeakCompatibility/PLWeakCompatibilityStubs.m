@@ -64,19 +64,15 @@ BOOL PLWeakCompatibilityHasMAZWR(void) {
 }
 
 // Runtime (or ARC compatibility) prototypes we use here.
-PLObjectPtr objc_release(PLObjectPtr obj);
-PLObjectPtr objc_autorelease(PLObjectPtr obj);
-PLObjectPtr objc_retain(PLObjectPtr obj);
-#ifdef COCOTRON
+id objc_release(id obj);
+id objc_autorelease(id obj);
+id objc_retain(id obj);
 OBJC_EXPORT Class object_getClass(id obj);
-#else
-Class object_getClass(PLObjectPtr obj);
-#endif
 
 // Primitive functions used to implement all weak stubs
-static PLObjectPtr PLLoadWeakRetained(PLObjectPtr *location);
-static void PLRegisterWeak(PLObjectPtr *location, PLObjectPtr obj);
-static void PLUnregisterWeak(PLObjectPtr *location);
+static id PLLoadWeakRetained(id *location);
+static void PLRegisterWeak(id *location, id obj);
+static void PLUnregisterWeak(id *location);
 
 // Convenience for falling through to the system implementation.
 static BOOL fallthroughEnabled = YES;
@@ -97,40 +93,42 @@ void PLWeakCompatibilitySetFallthroughEnabled(BOOL enabled) {
 #pragma mark Stubs
 ////////////////////
 
-PLObjectPtr objc_loadWeakRetained(PLObjectPtr *location) {
+id objc_loadWeakRetained(id *location) {
     NEXT(objc_loadWeakRetained, location);
 
     return PLLoadWeakRetained(location);
 }
 
-PLObjectPtr objc_initWeak(PLObjectPtr *addr, PLObjectPtr val) {
+id objc_initWeak(id *addr, id val) {
     NEXT(objc_initWeak, addr, val);
     *addr = NULL;
-    return objc_storeWeak(addr, val);
+    return (objc_storeWeak(addr, val));
 }
 
-void objc_destroyWeak(PLObjectPtr *addr) {
+void objc_destroyWeak(id *addr) {
     NEXT(objc_destroyWeak, addr);
     objc_storeWeak(addr, NULL);
 }
 
-void objc_copyWeak(PLObjectPtr *to, PLObjectPtr *from) {
+void objc_copyWeak(id *to, id *from) {
     NEXT(objc_copyWeak, to, from);
     objc_initWeak(to, objc_loadWeak(from));
 }
 
-void objc_moveWeak(PLObjectPtr *to, PLObjectPtr *from) {
+void objc_moveWeak(id *to, id *from) {
     NEXT(objc_moveWeak, to, from);
     objc_copyWeak(to, from);
     objc_destroyWeak(from);
 }
 
-PLObjectPtr objc_loadWeak(PLObjectPtr *location) {
-    NEXT(objc_loadWeak, location);
-    return objc_autorelease(objc_loadWeakRetained(location));
+//PLObjectPtr objc_loadWeak(PLObjectPtr *location) {
+id objc_loadWeak(id *location) {
+   NEXT(objc_loadWeak, location);
+    
+    return (objc_autorelease(objc_loadWeakRetained(location)));
 }
 
-PLObjectPtr objc_storeWeak(PLObjectPtr *location, PLObjectPtr obj) {
+id objc_storeWeak(id *location, id obj)  {
     NEXT(objc_storeWeak, location, obj);
 
     PLUnregisterWeak(location);
@@ -202,19 +200,19 @@ static SEL deallocSELSwizzled;
  * @param location a pointer to the weak reference to load
  * @return the object stored at the weak reference, retained, or nil if none
  */
-static PLObjectPtr PLLoadWeakRetained(PLObjectPtr *location) {
+static id PLLoadWeakRetained(id *location) {
     /* Hand off to MAZWR */
     if (has_mazwr()) {
-        MAZeroingWeakRef *mazrw = (__bridge MAZeroingWeakRef *) *location;
+        MAZeroingWeakRef *mazrw = (__bridge MAZeroingWeakRef *)((__bridge const void *) (*location));
         return objc_retain([mazrw target]);
     }
 
     WeakInit();
 
-    PLObjectPtr obj;
+    id obj;
     pthread_mutex_lock(&gWeakMutex); {
         obj = *location;
-        while (CFBagContainsValue(gReleasingObjects, obj)) {
+        while (CFBagContainsValue(gReleasingObjects, (__bridge const void *)(obj))) {
             pthread_cond_wait(&gReleasingObjectsCond, &gWeakMutex);
             obj = *location;
         }
@@ -231,11 +229,11 @@ static PLObjectPtr PLLoadWeakRetained(PLObjectPtr *location) {
  * @param location a pointer to the weak reference where obj is being stored
  * @param the object being weakly referenced at this location
  */
-static void PLRegisterWeak(PLObjectPtr *location, PLObjectPtr obj) {
+static void PLRegisterWeak(id *location, id obj) {
     /* Hand off to MAZWR */
-    if (has_mazwr()) {        
-        MAZeroingWeakRef *ref = [[MAZWR alloc] initWithTarget: obj];
-        *location = (__bridge_retained PLObjectPtr) ref;
+    if (has_mazwr()) {
+        MAZeroingWeakRef *ref = [[MAZWR alloc] initWithTarget: (__bridge PLObjectPtr)(obj)];
+        *location = (__bridge id)((__bridge_retained PLObjectPtr) ref);
         return;
     }
 
@@ -243,19 +241,19 @@ static void PLRegisterWeak(PLObjectPtr *location, PLObjectPtr obj) {
 
     // Add the location to the list of weak references pointing to the object.
     pthread_mutex_lock(&gWeakMutex); {
-        CFMutableSetRef addresses = (CFMutableSetRef)CFDictionaryGetValue(gObjectToAddressesMap, obj);
+        CFMutableSetRef addresses = (CFMutableSetRef)CFDictionaryGetValue(gObjectToAddressesMap, (__bridge const void *)(obj));
 
         // If this is the first weak reference to this object, addresses won't exist yet, so create it.
         if (addresses == NULL) {
             addresses = CFSetCreateMutable(NULL, 0, NULL);
-            CFDictionarySetValue(gObjectToAddressesMap, obj, addresses);
+            CFDictionarySetValue(gObjectToAddressesMap, (__bridge const void *)(obj), addresses);
             CFRelease(addresses);
         }
 
         CFSetAddValue(addresses, location);
 
         // Make sure the appropriate swizzling has been done to obj's class.
-        EnsureDeallocationTrigger(obj);
+        EnsureDeallocationTrigger((__bridge PLObjectPtr)(obj));
     } pthread_mutex_unlock(&gWeakMutex);
 }
 
@@ -265,7 +263,7 @@ static void PLRegisterWeak(PLObjectPtr *location, PLObjectPtr obj) {
  * @param location a pointer to the weak reference to unregister
  * @param obj the object to unregister
  */
-static void PLUnregisterWeak(PLObjectPtr *location) {
+static void PLUnregisterWeak(id *location) {
     /* Hand off to MAZWR */
     if (has_mazwr()) {
         if (*location != nil)
@@ -277,7 +275,7 @@ static void PLUnregisterWeak(PLObjectPtr *location) {
 
     pthread_mutex_lock(&gWeakMutex); {
         // Remove the location from the set of weakly referenced addresses.
-        CFMutableSetRef addresses = (CFMutableSetRef)CFDictionaryGetValue(gObjectToAddressesMap, *location);
+        CFMutableSetRef addresses = (CFMutableSetRef)CFDictionaryGetValue(gObjectToAddressesMap, (__bridge const void *)(*location));
         if (addresses != NULL)
             CFSetRemoveValue(addresses, location);
     } pthread_mutex_unlock(&gWeakMutex);
@@ -392,7 +390,7 @@ static void SwizzledReleaseIMP(PLObjectPtr self, SEL _cmd) {
     // and the call should start at the bottom. Otherwise, we want the next class above the
     // last one that was used.
     Class lastSent = (__bridge Class)CFDictionaryGetValue(tls->lastReleaseClassTable, self);
-    Class targetClass = lastSent == Nil ? object_getClass(self) : class_getSuperclass(lastSent);
+    Class targetClass = lastSent == Nil ? object_getClass((__bridge id)(self)) : class_getSuperclass(lastSent);
     targetClass = TopClassImplementingMethod(targetClass, releaseSELSwizzled);
     
     // If [self release] is called recursively (happens if 'self' is released in 'dealloc')
@@ -400,7 +398,7 @@ static void SwizzledReleaseIMP(PLObjectPtr self, SEL _cmd) {
     // To detect this, if targetClass doesn't respond to releaseSELSwizzled, start over at
     // the bottom.
     if (!class_respondsToSelector(targetClass, releaseSELSwizzled)) {
-        targetClass = object_getClass(self);
+        targetClass = object_getClass((__bridge id)(self));
         targetClass = TopClassImplementingMethod(targetClass, releaseSELSwizzled);
     }
     
@@ -450,7 +448,7 @@ static void SwizzledDeallocIMP(PLObjectPtr self, SEL _cmd) {
 
     // We follow the same basic procedure as in SwizzledReleaseIMP to properly handle recursion.
     Class lastSent = (__bridge Class)CFDictionaryGetValue(tls->lastDeallocClassTable, self);
-    Class targetClass = lastSent == Nil ? object_getClass(self) : class_getSuperclass(lastSent);
+    Class targetClass = lastSent == Nil ? object_getClass((__bridge id)(self)) : class_getSuperclass(lastSent);
     targetClass = TopClassImplementingMethod(targetClass, deallocSELSwizzled);
     CFDictionarySetValue(tls->lastDeallocClassTable, self, (__bridge void *)targetClass);
 
@@ -485,7 +483,7 @@ static void Swizzle(Class c, SEL orig, SEL new, IMP newIMP) {
  * @param obj the object to check
  */
 static void EnsureDeallocationTrigger(PLObjectPtr obj) {
-    Class c = object_getClass(obj);
+    Class c = object_getClass((__bridge id)(obj));
     if (CFSetContainsValue(gSwizzledClasses, (__bridge const void *)c))
         return;
 

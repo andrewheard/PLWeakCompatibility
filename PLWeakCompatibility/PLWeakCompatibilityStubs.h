@@ -19,6 +19,7 @@ typedef void *PLObjectPtr;
 // the official ones (due to using PLObjectPtr instead of id), simply do
 // #define EXCLUDE_STUB_PROTOTYPES 1 immediately before the import statement to
 // exclude these.
+#define EXCLUDE_STUB_PROTOTYPES 1
 #if !EXCLUDE_STUB_PROTOTYPES
 PLObjectPtr objc_loadWeakRetained(PLObjectPtr *location);
 PLObjectPtr objc_initWeak(PLObjectPtr *addr, PLObjectPtr val);
