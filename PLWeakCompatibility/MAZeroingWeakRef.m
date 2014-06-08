@@ -303,7 +303,10 @@ static Class CustomSubclassClassForCoder(id self, SEL _cmd)
 
 static void KVOSubclassRelease(id self, SEL _cmd)
 {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
     IMP originalRelease = class_getMethodImplementation(object_getClass(self), @selector(MAZeroingWeakRef_KVO_original_release));
+#pragma clang diagnostic pop
     WhileLocked({
         ((void (*)(id, SEL))originalRelease)(self, _cmd);
     });
@@ -312,7 +315,10 @@ static void KVOSubclassRelease(id self, SEL _cmd)
 static void KVOSubclassDealloc(id self, SEL _cmd)
 {
     ClearWeakRefsForObject(self);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
     IMP originalDealloc = class_getMethodImplementation(object_getClass(self), @selector(MAZeroingWeakRef_KVO_original_dealloc));
+#pragma clang diagnostic pop
     ((void (*)(id, SEL))originalDealloc)(self, _cmd);
 }
 
@@ -431,7 +437,7 @@ static BOOL IsTollFreeBridged(Class class, id obj)
 
 static BOOL IsConstantObject(id obj)
 {
-  unsigned int retainCount = [obj retainCount];
+  unsigned long retainCount = [obj retainCount];
   return retainCount == UINT_MAX || retainCount == INT_MAX;
 }
 
@@ -526,7 +532,7 @@ static BOOL CanNativeZWRClass(Class c)
     
     const char *name = class_getName(c);
     unsigned char hash[CC_SHA1_DIGEST_LENGTH];
-    CC_SHA1(name, strlen(name), hash);
+    CC_SHA1(name, (CC_LONG)strlen(name), hash);
     
     if(HashPresentInTable(hash, CC_SHA1_DIGEST_LENGTH, _MAZeroingWeakRefClassNativeWeakReferenceNotAllowedTable))
         return NO;
@@ -564,8 +570,11 @@ static void PatchKVOSubclass(Class class)
     Method release = class_getInstanceMethod(class, @selector(release));
     Method dealloc = class_getInstanceMethod(class, @selector(dealloc));
     
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
     class_addMethod(class, @selector(MAZeroingWeakRef_KVO_original_release), method_getImplementation(release), method_getTypeEncoding(release));
     class_addMethod(class, @selector(MAZeroingWeakRef_KVO_original_dealloc), method_getImplementation(dealloc), method_getTypeEncoding(dealloc));
+#pragma clang diagnostic pop
     
     class_replaceMethod(class, @selector(release), (IMP)KVOSubclassRelease, method_getTypeEncoding(release));
     class_replaceMethod(class, @selector(dealloc), (IMP)KVOSubclassDealloc, method_getTypeEncoding(dealloc));

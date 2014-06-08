@@ -235,7 +235,7 @@ static void PLRegisterWeak(id *location, id obj) {
     /* Hand off to MAZWR */
     if (has_mazwr()) {
         MAZeroingWeakRef *ref = [[MAZWR alloc] initWithTarget: (__bridge PLObjectPtr)(obj)];
-        *location = (__bridge id)((__bridge_retained PLObjectPtr) ref);
+        *location = (__bridge id)((PLObjectPtr) ref);
         return;
     }
 
