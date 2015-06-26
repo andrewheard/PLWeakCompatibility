@@ -395,7 +395,7 @@
 			name = "PLWeakCompatibility-iOS-Tests";
 			productName = "PLWeakCompatibility-iOS-TestRunnerTests";
 			productReference = 0573A9641526484200D0D884 /* PLWeakCompatibility-iOS-Tests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		C2CB83451523D8F300E8ABFC /* PLWeakCompatibility-MacOSX-Tests */ = {
 			isa = PBXNativeTarget;
@@ -413,7 +413,7 @@
 			name = "PLWeakCompatibility-MacOSX-Tests";
 			productName = PLWeakCompatibilityTests;
 			productReference = C2CB83461523D8F300E8ABFC /* PLWeakCompatibility-MacOSX-Tests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -612,7 +612,7 @@
 		053887AA1523F6CD00CDC1DF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD)";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -624,7 +624,7 @@
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				INFOPLIST_FILE = "PLWeakCompatibility/PLWeakCompatibility-Info.plist";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = PLWeakCompatibility;
 				SDKROOT = macosx;
@@ -635,7 +635,7 @@
 		053887AB1523F6CD00CDC1DF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD)";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
@@ -648,7 +648,7 @@
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				INFOPLIST_FILE = "PLWeakCompatibility/PLWeakCompatibility-Info.plist";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PRODUCT_NAME = PLWeakCompatibility;
 				SDKROOT = macosx;
 				WRAPPER_EXTENSION = framework;
